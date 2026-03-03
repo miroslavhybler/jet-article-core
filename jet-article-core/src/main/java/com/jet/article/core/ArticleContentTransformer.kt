@@ -1,4 +1,4 @@
-package com.jet.article.nativelib
+package com.jet.article.core
 
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle

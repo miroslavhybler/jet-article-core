@@ -1,4 +1,4 @@
-package com.jet.article.nativelib
+package com.jet.article.core
 
 import android.util.Log
 import androidx.annotation.Keep

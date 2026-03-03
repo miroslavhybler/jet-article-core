@@ -1,6 +1,6 @@
 @file:Suppress("RedundantVisibilityModifier")
 
-package com.jet.article.nativelib
+package com.jet.article.core
 
 import android.content.Context
 import android.content.Intent

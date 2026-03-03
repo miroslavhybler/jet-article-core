@@ -1,4 +1,4 @@
-package com.jet.article.nativelib
+package com.jet.article.core
 
 import androidx.annotation.Keep
 import androidx.compose.runtime.Immutable

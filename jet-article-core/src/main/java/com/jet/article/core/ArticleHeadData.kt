@@ -3,7 +3,7 @@
     "DATA_CLASS_COPY_VISIBILITY_WILL_BE_CHANGED_WARNING"
 )
 
-package com.jet.article.nativelib
+package com.jet.article.core
 
 import androidx.annotation.Keep
 import androidx.compose.runtime.Immutable

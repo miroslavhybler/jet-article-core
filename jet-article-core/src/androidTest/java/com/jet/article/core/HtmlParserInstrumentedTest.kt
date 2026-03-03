@@ -1,6 +1,8 @@
-package com.jet.article.nativelib
+package com.jet.article.core
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jet.article.core.ArticleContentTransformer
+import com.jet.article.core.ArticleElement
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test

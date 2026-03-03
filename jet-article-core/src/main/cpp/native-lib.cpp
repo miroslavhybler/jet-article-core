@@ -105,7 +105,7 @@ Java_com_jet_article_nativelib_JetArticleNativeLib_parse(
 
     // Initialize JNI global references
     if (!g_tagCallbackClass) {
-        jclass localCallbackClass = env->FindClass("com/jet/article/nativelib/TagCallback");
+        jclass localCallbackClass = env->FindClass("com/jet/article/core/TagCallback");
         if (!localCallbackClass) { LOGE("Failed to find TagCallback class."); return; }
         g_tagCallbackClass = static_cast<jclass>(env->NewGlobalRef(localCallbackClass));
         env->DeleteLocalRef(localCallbackClass);

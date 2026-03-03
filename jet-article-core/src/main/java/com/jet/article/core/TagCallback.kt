@@ -1,4 +1,4 @@
-package com.jet.article.nativelib
+package com.jet.article.core
 
 /**
  * A SAX-style callback interface for receiving granular HTML parsing events from the native parser.

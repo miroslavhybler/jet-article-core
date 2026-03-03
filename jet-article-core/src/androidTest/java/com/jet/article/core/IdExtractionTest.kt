@@ -1,5 +1,6 @@
-package com.jet.article.nativelib
+package com.jet.article.core
 
+import com.jet.article.core.ArticleContentTransformer
 import org.junit.Assert
 import org.junit.Test
 

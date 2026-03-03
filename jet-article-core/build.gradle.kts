@@ -1,9 +1,10 @@
 plugins {
     alias(libs.plugins.android.library)
+    `maven-publish`
 }
 
 android {
-    namespace = "com.jet.article.nativelib"
+    namespace = "com.jet.article.core"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -53,14 +54,36 @@ android {
     testOptions {
         //   unitTests.includeAndroidResources = true
     }
+
+    publishing {
+        singleVariant("release")
+    }
 }
 
 dependencies {
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.compose.ui.text)
-    implementation(libs.androidx.compose.runtime)
-    implementation(libs.androidx.compose.foundation)
+    compileOnly(libs.androidx.compose.ui.text)
+    compileOnly(libs.androidx.compose.runtime)
+    compileOnly(libs.androidx.compose.foundation)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+
+publishing {
+    publications {
+        create<MavenPublication>("release") {
+            groupId = "com.github.miroslavhybler"
+            artifactId = "article-core"
+            version = "DEV"
+
+            afterEvaluate {
+                from(components["release"])
+            }
+        }
+    }
+    repositories {
+        mavenLocal()
+    }
 }

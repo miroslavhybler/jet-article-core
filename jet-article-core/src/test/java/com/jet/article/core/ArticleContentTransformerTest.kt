@@ -1,4 +1,4 @@
-package com.jet.article.nativelib
+package com.jet.article.core
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
