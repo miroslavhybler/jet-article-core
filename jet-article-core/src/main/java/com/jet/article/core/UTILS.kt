@@ -4,7 +4,6 @@ package com.jet.article.core
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import androidx.core.net.toUri
 import java.net.URI
 import java.net.URISyntaxException
@@ -14,17 +13,6 @@ import java.net.URISyntaxException
  * @author Miroslav Hýbler <br>
  * created on 25.08.2023
  */
-@Deprecated(message = "Old proj")
-@Throws(URISyntaxException::class)
-public fun String.toDomainName(): String? {
-    val uri = URI(this)
-    val domain: String = uri.host ?: return null
-    return if (domain.startsWith(prefix = "www.") && domain.length > 4) {
-        substring(startIndex = 4, endIndex = domain.length)
-    } else domain
-}
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /////
 /////   Context utils

@@ -1,13 +1,18 @@
 package com.jet.article.core
 
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.IntSize
+import java.net.URI
+import java.net.URISyntaxException
 import java.util.Stack
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.TextLinkStyles
 
 
 private interface ContentBuilder {
@@ -16,30 +21,31 @@ private interface ContentBuilder {
 }
 
 private class RootBuilder : ContentBuilder {
-    private val elements = mutableListOf<ArticleElement>()
+    private val mElements = mutableListOf<ArticleElement>()
     override fun addElement(element: ArticleElement) {
-        elements.add(element)
+        mElements.add(element)
     }
 
-    override fun build(): List<ArticleElement> = elements
+    override fun build(): List<ArticleElement> = mElements
 }
 
-private class ListBuilder(val isOrdered: Boolean, val ids: List<String>, val sourceIndex: Int) : ContentBuilder {
-    private val items = mutableListOf<List<ArticleElement>>()
+private class ListBuilder(val isOrdered: Boolean, val ids: List<String>, val sourceIndex: Int) :
+    ContentBuilder {
+    private val mItems = mutableListOf<List<ArticleElement>>()
     override fun addElement(element: ArticleElement) {
         // This builder should only receive lists of elements representing an 'li'
         if (element is ArticleElement.Text || element is ArticleElement.Image || element is ArticleElement.ContentList) {
-            items.add(listOf(element))
+            mItems.add(listOf(element))
         }
     }
 
     fun addItemList(item: List<ArticleElement>) {
-        items.add(item)
+        mItems.add(item)
     }
 
     override fun build(): List<ArticleElement> {
         val allIds = ids.toMutableList()
-        items.forEach { row ->
+        mItems.forEach { row ->
             row.forEach { cell ->
                 allIds.addAll(cell.ids)
             }
@@ -47,7 +53,7 @@ private class ListBuilder(val isOrdered: Boolean, val ids: List<String>, val sou
         return listOf(
             ArticleElement.ContentList(
                 sourceIndex = sourceIndex,
-                items = items,
+                items = mItems,
                 isOrdered = isOrdered,
                 ids = allIds.distinct()
             )
@@ -59,12 +65,12 @@ private class ListBuilder(val isOrdered: Boolean, val ids: List<String>, val sou
 private class ListItemBuilder constructor(
     val ids: List<String>
 ) : ContentBuilder {
-    private val content = mutableListOf<ArticleElement>()
+    private val mContent = mutableListOf<ArticleElement>()
     override fun addElement(element: ArticleElement) {
-        content.add(element = element)
+        mContent.add(element = element)
     }
 
-    override fun build(): List<ArticleElement> = content
+    override fun build(): List<ArticleElement> = mContent
 }
 
 
@@ -72,41 +78,41 @@ private class TableBuilder(
     val ids: List<String>,
     val sourceIndex: Int,
 ) : ContentBuilder {
-    private val rows = mutableListOf<ArticleElement.ContentTable.TableRow>()
-    private var currentRow = mutableListOf<ArticleElement.ContentTable.TableCell>()
-    private var currentCell = mutableListOf<ArticleElement>()
+    private val mRows = mutableListOf<ArticleElement.ContentTable.TableRow>()
+    private var mCurrentRow = mutableListOf<ArticleElement.ContentTable.TableCell>()
+    private var mCurrentCell = mutableListOf<ArticleElement>()
 
     fun startNewRow() {
-        if (currentCell.isNotEmpty()) {
-            currentRow.add(element = ArticleElement.ContentTable.TableCell(content = currentCell))
+        if (mCurrentCell.isNotEmpty()) {
+            mCurrentRow.add(element = ArticleElement.ContentTable.TableCell(content = mCurrentCell))
         }
-        if (currentRow.isNotEmpty()) {
-            rows.add(element = ArticleElement.ContentTable.TableRow(cells = currentRow))
+        if (mCurrentRow.isNotEmpty()) {
+            mRows.add(element = ArticleElement.ContentTable.TableRow(cells = mCurrentRow))
         }
-        currentRow = mutableListOf()
-        currentCell = mutableListOf()
+        mCurrentRow = mutableListOf()
+        mCurrentCell = mutableListOf()
     }
 
     fun startNewCell() {
-        if (currentCell.isNotEmpty()) {
-            currentRow.add(element = ArticleElement.ContentTable.TableCell(content = currentCell))
+        if (mCurrentCell.isNotEmpty()) {
+            mCurrentRow.add(element = ArticleElement.ContentTable.TableCell(content = mCurrentCell))
         }
-        currentCell = mutableListOf()
+        mCurrentCell = mutableListOf()
     }
 
     override fun addElement(element: ArticleElement) {
-        currentCell.add(element = element)
+        mCurrentCell.add(element = element)
     }
 
     override fun build(): List<ArticleElement> {
-        if (currentCell.isNotEmpty()) {
-            currentRow.add(element = ArticleElement.ContentTable.TableCell(content = currentCell))
+        if (mCurrentCell.isNotEmpty()) {
+            mCurrentRow.add(element = ArticleElement.ContentTable.TableCell(content = mCurrentCell))
         }
-        if (currentRow.isNotEmpty()) {
-            rows.add(element = ArticleElement.ContentTable.TableRow(cells = currentRow))
+        if (mCurrentRow.isNotEmpty()) {
+            mRows.add(element = ArticleElement.ContentTable.TableRow(cells = mCurrentRow))
         }
         val allIds = ids.toMutableList()
-        rows.forEach { row ->
+        mRows.forEach { row ->
             row.cells.forEach { cell ->
                 cell.content.forEach {
                     allIds.addAll(elements = it.ids)
@@ -115,7 +121,7 @@ private class TableBuilder(
         }
         return listOf(
             ArticleElement.ContentTable(
-                rows = rows,
+                rows = mRows,
                 ids = allIds.distinct(),
                 sourceIndex = sourceIndex,
             )
@@ -150,16 +156,17 @@ class ArticleContentTransformer() : TagCallback {
     private var mIsInsideBlockquote = false
     private var mCustomTagFilter: ((tagName: String, attributes: Map<String, String>) -> Boolean)? =
         null
+    private var mBaseUrl: String? = null
 
     private val mIgnoredTags = setOf(
-        "noscript", "script", "svg", "button", "input", "form", "style"
+        "noscript", "script", "svg", "button", "input", "style"
     )
 
 
     fun transform(
         html: String,
         url: String,
-        customTagFilter: ((tagName: String, attributes: Map<String, String>) -> Boolean)? = null
+        customTagFilter: ((tagName: String, attributes: Map<String, String>) -> Boolean)? = null,
     ): ArticleData {
         // Reset all state
         mBuilderStack.clear()
@@ -176,6 +183,7 @@ class ArticleContentTransformer() : TagCallback {
         mTitle = null
         mIsInsideBlockquote = false
         mCustomTagFilter = customTagFilter
+        mBaseUrl = url
 
         mJetArticleNativeLib.parse(html = html, callback = this)
         flushText()
@@ -188,7 +196,10 @@ class ArticleContentTransformer() : TagCallback {
         )
     }
 
-    override fun onStartTag(tagName: String, attributes: Map<String, String>) {
+    override fun onStartTag(
+        tagName: String,
+        attributes: Map<String, String>
+    ) {
         val tag = tagName.lowercase()
 
         if (mIgnoredTagDepth > 0) {
@@ -250,7 +261,32 @@ class ArticleContentTransformer() : TagCallback {
             "b", "strong" -> mStyleStack.push(SpanStyle(fontWeight = FontWeight.Bold))
             "i", "em", "address" -> mStyleStack.push(SpanStyle(fontStyle = FontStyle.Italic))
             "u" -> mStyleStack.push(SpanStyle(textDecoration = TextDecoration.Underline))
-            "a" -> mStyleStack.push(SpanStyle(textDecoration = TextDecoration.Underline))
+            "a" -> {
+                mStyleStack.push(SpanStyle(textDecoration = TextDecoration.Underline))
+                attributes["href"]?.let { href ->
+                    val link = getLink(rawLink = href, articleUrl = mBaseUrl)
+                    val customUrl = when (link) {
+                        is Link.SameDomainLink -> "jetarticle://same-domain?url=${link.fullLink}"
+                        is Link.OtherDomainLink -> "jetarticle://other-domain?url=${link.fullLink}"
+                        is Link.SectionLink -> "jetarticle://section?id=${
+                            link.fullLink.removePrefix(
+                                "#"
+                            )
+                        }"
+
+                        is Link.UriLink -> "jetarticle://uri?uri=${link.fullLink}"
+                    }
+                    //Just pust the annotation now, it updated later with styles and listener in Text.kt in UI module
+                    mAnnotatedStringBuilder.pushLink(
+                        link = LinkAnnotation.Clickable(
+                            tag = customUrl,
+                            styles = TextLinkStyles(),
+                            linkInteractionListener = null,
+                        )
+                    )
+                }
+            }
+
             "q" -> mAnnotatedStringBuilder.append("\"")
             "img" -> {
                 val src = attributes["src"] ?: ""
@@ -318,7 +354,6 @@ class ArticleContentTransformer() : TagCallback {
             }
 
 
-
             "ul", "ol", "table" -> {
                 if (mBuilderStack.size > 1) { // Don't pop the root
                     val finishedBuilder = mBuilderStack.pop()
@@ -329,7 +364,19 @@ class ArticleContentTransformer() : TagCallback {
             "blockquote" -> mIsInsideBlockquote = false
             "pre" -> mIsInsidePreTag = false
             "q" -> mAnnotatedStringBuilder.append("\"")
-            "b", "strong", "i", "em", "u", "a", "address" -> {
+            "a" -> {
+                if (mStyleStack.isNotEmpty()) {
+                    mStyleStack.pop()
+                }
+                try {
+                    mAnnotatedStringBuilder.pop()
+                } catch (e: IllegalStateException) {
+                    // This can happen for an <a> tag without an href attribute.
+                    // In this case, no link is pushed, so popping would cause a crash.
+                }
+            }
+
+            "b", "strong", "i", "em", "u", "address" -> {
                 if (mStyleStack.isNotEmpty()) {
                     mStyleStack.pop()
                 }
@@ -472,6 +519,13 @@ class ArticleContentTransformer() : TagCallback {
     }
 }
 
+private fun resolveUrl(baseUrl: String?, link: String): String {
+    if (baseUrl == null) return link
+    val baseUri = URI.create(baseUrl)
+    val resolvedUri = baseUri.resolve(link)
+    return resolvedUri.toString()
+}
+
 private fun AnnotatedString.trimWhitespace(): AnnotatedString {
     if (text.isEmpty()) return this
     val first = text.indexOfFirst { !it.isWhitespace() }
@@ -480,23 +534,96 @@ private fun AnnotatedString.trimWhitespace(): AnnotatedString {
     return this.subSequence(first, last + 1)
 }
 
+@OptIn(ExperimentalTextApi::class)
 private fun AnnotatedString.collapseWhitespace(): AnnotatedString {
     val builder = AnnotatedString.Builder()
     var i = 0
     while (i < this.length) {
         if (this.text[i].isWhitespace()) {
+            val whitespaceStart = i
             while (i + 1 < this.length && this.text[i + 1].isWhitespace()) {
                 i++
             }
-            builder.append(" ")
+            // Now 'i' is the last character of the whitespace block
+
+            val singleSpaceAnnotatedBuilder = AnnotatedString.Builder()
+            singleSpaceAnnotatedBuilder.append(" ")
+
+            // Transfer span styles from the first character of the whitespace block
+            this.spanStyles.filter {
+                it.start <= whitespaceStart && it.end > whitespaceStart
+            }.forEach { spanRange ->
+                singleSpaceAnnotatedBuilder.addStyle(spanRange.item, 0, 1)
+            }
+
+            // Transfer link annotations from the first character of the whitespace block
+            this.getLinkAnnotations(whitespaceStart, whitespaceStart + 1).forEach { linkRange ->
+                when (val item = linkRange.item) {
+                    is LinkAnnotation.Url -> singleSpaceAnnotatedBuilder.addLink(item, 0, 1)
+                    is LinkAnnotation.Clickable -> singleSpaceAnnotatedBuilder.addLink(item, 0, 1)
+                }
+            }
+
+            builder.append(singleSpaceAnnotatedBuilder.toAnnotatedString())
+
         } else {
             val start = i
             while (i + 1 < this.length && !this.text[i + 1].isWhitespace()) {
                 i++
             }
-            builder.append(text = this.subSequence(startIndex = start, endIndex = i + 1))
+            builder.append(this.subSequence(startIndex = start, endIndex = i + 1))
         }
         i++
     }
     return builder.toAnnotatedString()
+}
+
+private fun getLink(
+    rawLink: String,
+    articleUrl: String?,
+): Link {
+    if (rawLink.startsWith(prefix = "#")) {
+        return Link.SectionLink(rawLink = rawLink, fullLink = rawLink)
+    }
+
+    if (rawLink.startsWith(prefix = "mailto:") || rawLink.startsWith(prefix = "tel:")) {
+        return Link.UriLink(rawLink = rawLink, fullLink = rawLink)
+    }
+
+    val fullLink = validateLink(
+        rawLink = rawLink,
+        articleUrl = articleUrl
+    )
+
+    val mDomain = try {
+        articleUrl?.toDomainName()
+    } catch (e: URISyntaxException) {
+        null
+    }
+    val linkDomain = try {
+        fullLink.toDomainName()
+    } catch (e: URISyntaxException) {
+        null
+    }
+
+    if (
+        (mDomain != null && linkDomain != null)
+        && mDomain == linkDomain
+    ) {
+        //Must be link within same domain
+        return Link.SameDomainLink(rawLink = rawLink, fullLink = fullLink)
+    }
+
+    return Link.OtherDomainLink(rawLink = rawLink, fullLink = fullLink)
+}
+
+private fun validateLink(rawLink: String, articleUrl: String?): String {
+    if (articleUrl == null) return rawLink
+    val baseUri = try {
+        URI(articleUrl)
+    } catch (e: URISyntaxException) {
+        return rawLink
+    }
+    val resolvedUri = baseUri.resolve(rawLink)
+    return resolvedUri.toString()
 }

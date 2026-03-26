@@ -10,7 +10,7 @@ import androidx.compose.runtime.Immutable
  */
 @Keep
 @Immutable
-public data class ArticleData public constructor(
+data class ArticleData public constructor(
     val url: String,
     val elements: List<ArticleElement>,
     val headData: ArticleHeadData,

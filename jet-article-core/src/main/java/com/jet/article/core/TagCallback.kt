@@ -10,7 +10,10 @@ interface TagCallback {
      * @param tagName The name of the HTML tag.
      * @param attributes A map of the tag's attributes.
      */
-    fun onStartTag(tagName: String, attributes: Map<String, String>)
+    fun onStartTag(
+        tagName: String,
+        attributes: Map<String, String>,
+    )
 
     /**
      * Called when an end tag is encountered (e.g., `</p>`, `</b>`).
